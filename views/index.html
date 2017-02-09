@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+  {% if errors %}
+    {% include "errors.html" %}
+  {% endif %}
+
+  {% if user %}
+    {% include "tasks.html" %}
+  {% else %}
+    {% include "login.html" %}
+  {% endif %}
+
+
+<footer>
+  Footer goes here!
+</footer>
+
+{% endblock %}

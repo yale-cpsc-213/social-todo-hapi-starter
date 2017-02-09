@@ -1,0 +1,34 @@
+{
+  "name": "social-todo-hapi",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon -e html,js,json server.js",
+    "serve": "node server.js",
+    "test": "lab -c -L",
+    "test-cover": "lab -c -r html -o ./test/artifacts/coverage.html && open ./test/artifacts/coverage.html"
+  },
+  "repository": {},
+  "license": "Unlicense",
+  "devDependencies": {
+    "eslint": "^3.15.0",
+    "eslint-config-airbnb-base": "^11.0.1",
+    "eslint-plugin-import": "^2.2.0",
+    "nodemon": "^1.11.0"
+  },
+  "dependencies": {
+    "bcrypt": "^1.0.2",
+    "code": "^4.0.0",
+    "hapi": "^16.1.0",
+    "hapi-auth-cookie": "^6.1.1",
+    "lab": "^12.1.0",
+    "mysql2": "^1.1.2",
+    "nunjucks": "^3.0.0",
+    "pg": "^6.1.2",
+    "pg-hstore": "^2.3.2",
+    "sequelize": "^3.30.1",
+    "sqlite3": "^3.1.8",
+    "validator": "^6.2.1",
+    "vision": "^4.1.1"
+  }
+}
