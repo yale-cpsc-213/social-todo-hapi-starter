@@ -7,10 +7,10 @@ here. The most important are [Hapi](https://hapijs.com) and
 
 ## Getting started
 
-You will need a Node environment and [yarn](https://yarnpkg.com/en/).
+You will need a Node environment on your machine.
 Clone the code, `cd` into the
 code's directory and then download your dependencies with
-`yarn install`. This will populate your `node_modules` directory
+`npm install`. This will populate your `node_modules` directory
 with everything I used to complete the homework. Of course, you are
 free to add and remove dependencies as you like for your solution.
 
