@@ -2,33 +2,37 @@
   "name": "social-todo-hapi",
   "version": "1.0.0",
   "main": "server.js",
+  "engines": {
+    "node": "8.6.0"
+  },
   "scripts": {
     "start": "nodemon -e html,js,json server.js",
     "serve": "node server.js",
-    "test": "lab -c -L",
+    "test": "lab",
     "test-cover": "lab -c -r html -o ./test/artifacts/coverage.html && open ./test/artifacts/coverage.html"
   },
   "repository": {},
   "license": "Unlicense",
   "devDependencies": {
-    "eslint": "^4.15.0",
+    "eslint": "^4.17.0",
     "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.8.0",
-    "nodemon": "^1.14.11"
+    "eslint-plugin-import": "^2.2.0",
+    "nodemon": "^1.11.0"
   },
   "dependencies": {
-    "bcrypt": "^1.0.3",
+    "async": "^2.6.0",
+    "bcrypt": "^1.0.2",
     "code": "^5.1.2",
-    "hapi": "^17.2.0",
-    "hapi-auth-cookie": "^8.0.0",
-    "lab": "^15.2.0",
-    "mysql2": "^1.5.1",
-    "nunjucks": "^3.0.1",
+    "hapi": "^16.6.2",
+    "hapi-auth-cookie": "^7.0.0",
+    "lab": "^15.2.1",
+    "mysql2": "^1.1.2",
+    "nunjucks": "^3.0.0",
     "pg": "^7.4.1",
     "pg-hstore": "^2.3.2",
-    "sequelize": "^4.31.0",
-    "sqlite3": "^3.1.13",
-    "validator": "^9.2.0",
-    "vision": "^5.3.0"
+    "sequelize": "^4.32.6",
+    "sqlite3": "^3.1.8",
+    "validator": "^9.4.0",
+    "vision": "^4.1.1"
   }
 }

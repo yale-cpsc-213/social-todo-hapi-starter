@@ -13,7 +13,6 @@ function isInt(value) {
 }
 
 function init(sequelize, DataTypes) {
-  let Users;
   /**
    * notNullString - defines options for a non-empty
    * non-null string database field.
@@ -65,102 +64,102 @@ function init(sequelize, DataTypes) {
   };
 
   let TasksModel = null;
-  const options = {
-    instanceMethods: {
-      setPassword(password) {
-        if (typeof password === 'string' && password.length > 0 && typeof this.salt === 'string') {
-          this.passwordHash = bcrypt.hashSync(password, this.salt);
-          return this.passwordHash;
-        }
-        return null;
-      },
-      setSalt() {
-        this.salt = bcrypt.genSaltSync(10);
-      },
-      checkPassword(password) {
-        const passwordHash = bcrypt.hashSync(password, this.salt);
-        return passwordHash === this.passwordHash;
-      },
-    },
-    classMethods: {
-      ezBuild(opts) {
-        const user = this.build(opts);
-        user.setSalt();
-        user.setPassword(opts.password);
-        return user;
-      },
+  const Users = sequelize.define('users', fields, {});
 
-      /**
-       * validateFunc - used by Hapi's auth plugin. This
-       * will pass in session data and expect us to change
-       * the session data in some way. See
-       * https://hapijs.com/tutorials/auth and
-       * https://github.com/hapijs/hapi-auth-cookie
-       *
-       * In this function, we're loading the user based on
-       * the session information (which contains the user's id)
-       * and we are preloading their tasks.
-       *
-       * @param  {type} request  the HAPI request
-       * @param  {type} session  the session info, in our case from the user's cookie
-       * @param  {type} callback see https://github.com/hapijs/hapi-auth-cookie
-       */
-      validateFunc(request, session, callback) {
-        if (!isInt(session.id)) {
-          return callback(null, false, {});
-        }
-        const id = parseInt(session.id, 10);
-        let user = null;
-        return Users.findOneWithTasks({
-          id,
-        }).then((foundUser) => {
-          user = foundUser;
-        }).error((err) => {
-          console.log('Error loading user:', err);
-        }).finally(() => {
-          if (user == null) {
-            request.cookieAuth.clear();
-          }
-          callback(null, user !== null, user);
-        });
-      },
-
-      /**
-       * findOneWithTasks - Loads a user with a given id and
-       * eagerly loads their tasks.
-       *
-       * @param  {Object} where query that we are running
-       * @return {Promise} Promise that resolves to the user or error
-       */
-      findOneWithTasks(where) {
-        return this.findOne({
-          where,
-          include: [
-            {
-              model: TasksModel,
-              as: 'tasks',
-          },
-            {
-              model: TasksModel,
-              as: 'sharedTasks',
-          },
-        ],
-        });
-      },
-      associate(models) {
-        TasksModel = models.tasks;
-        this.hasMany(models.tasks, {
-          as: 'tasks',
-          foreignKey: 'ownerId',
-        });
-        this.belongsToMany(models.tasks, {
-          through: 'collaborations',
-          as: 'sharedTasks',
-        });
-      },
-    },
+  Users.ezBuild = function (opts) {
+    const user = this.build(opts);
+    user.setSalt();
+    user.setPassword(opts.password);
+    return user;
   };
-  Users = sequelize.define('users', fields, options);
+
+  Users.associate = function (models) {
+    TasksModel = models.tasks;
+    this.hasMany(models.tasks, {
+      as: 'tasks',
+      foreignKey: 'ownerId',
+    });
+    this.belongsToMany(models.tasks, {
+      through: 'collaborations',
+      as: 'sharedTasks',
+    });
+  };
+
+  /**
+   * validateFunc - used by Hapi's auth plugin. This
+   * will pass in session data and expect us to change
+   * the session data in some way. See
+   * https://hapijs.com/tutorials/auth and
+   * https://github.com/hapijs/hapi-auth-cookie
+   *
+   * In this function, we're loading the user based on
+   * the session information (which contains the user's id)
+   * and we are preloading their tasks.
+   *
+   * @param  {type} request  the HAPI request
+   * @param  {type} session  the session info, in our case from the user's cookie
+   * @param  {type} callback see https://github.com/hapijs/hapi-auth-cookie
+   */
+  Users.validateFunc =
+    function (request, session, callback) {
+      if (!isInt(session.id)) {
+        return callback(null, false, {});
+      }
+      const id = parseInt(session.id, 10);
+      let user = null;
+      return Users.findOneWithTasks({
+        id,
+      }).then((foundUser) => {
+        user = foundUser;
+      }).error((err) => {
+        console.log('Error loading user:', err);
+      }).finally(() => {
+        if (user == null) {
+          request.cookieAuth.clear();
+        }
+        callback(null, user !== null, user);
+      });
+    };
+
+  /**
+   * findOneWithTasks - Loads a user with a given id and
+   * eagerly loads their tasks.
+   *
+   * @param  {Object} where query that we are running
+   * @return {Promise} Promise that resolves to the user or error
+   */
+  Users.findOneWithTasks = function (where) {
+    return this.findOne({
+      where,
+      include: [{
+          model: TasksModel,
+          as: 'tasks',
+        },
+        {
+          model: TasksModel,
+          as: 'sharedTasks',
+        },
+      ],
+    });
+  };
+
+  Users.prototype.setPassword = function (password) {
+    if (typeof password === 'string' && password.length > 0 && typeof this.salt === 'string') {
+      this.passwordHash = bcrypt.hashSync(password, this.salt);
+      return this.passwordHash;
+    }
+    return null;
+  };
+
+  Users.prototype.checkPassword = function (password) {
+    const passwordHash = bcrypt.hashSync(password, this.salt);
+    return passwordHash === this.passwordHash;
+  };
+
+  Users.prototype.setSalt = function () {
+    this.salt = bcrypt.genSaltSync(10);
+  };
+
   return Users;
 }
 

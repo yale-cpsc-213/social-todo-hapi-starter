@@ -29,29 +29,26 @@ function init(sequelize, DataTypes) {
     },
   };
 
-  const options = {
-    classMethods: {
-      associate(models) {
-        // Each Task has one owner and many collaborators. The collaborators
-        // will be created in a join table.
-        // See http://docs.sequelizejs.com/en/latest/docs/associations/
-        // and https://github.com/sequelize/express-example/blob/master/models/task.js
-        this.belongsTo(models.users, {
-          onDelete: 'CASCADE',
-          foreignKey: {
-            allowNull: false,
-          },
-          as: 'owner',
-        });
-        this.belongsToMany(models.users, {
-          through: 'collaborations',
-          as: 'collaborators',
-        });
-      },
-    },
-  };
 
-  const Tasks = sequelize.define('tasks', fields, options);
+  const Tasks = sequelize.define('tasks', fields, {});
+
+  Tasks.associate = function (models) {
+    // Each Task has one owner and many collaborators. The collaborators
+    // will be created in a join table.
+    // See http://docs.sequelizejs.com/en/latest/docs/associations/
+    // and https://github.com/sequelize/express-example/blob/master/models/task.js
+    this.belongsTo(models.users, {
+      onDelete: 'CASCADE',
+      foreignKey: {
+        allowNull: false,
+      },
+      as: 'owner',
+    });
+    this.belongsToMany(models.users, {
+      through: 'collaborations',
+      as: 'collaborators',
+    });
+  };
   return Tasks;
 }
 

@@ -7,12 +7,19 @@ here. The most important are [Hapi](https://hapijs.com) and
 
 ## Getting started
 
-You will need a Node environment on your machine.
+You will need a Node environment and npm.
 Clone the code, `cd` into the
 code's directory and then download your dependencies with
 `npm install`. This will populate your `node_modules` directory
 with everything I used to complete the homework. Of course, you are
 free to add and remove dependencies as you like for your solution.
+
+## A Caveat
+
+The Hapi web application framework made major changes to the
+API between versions 16 and 17. Their documentation online is
+all 16 still as far as I can tell, so we kept this code pinned
+as 16.
 
 ## What I did for you
 

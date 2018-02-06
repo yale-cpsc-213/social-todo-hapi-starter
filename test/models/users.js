@@ -15,11 +15,11 @@ const sequelize = new Sequelize('sqlite://', {
 });
 const Users = sequelize.import(userModelPath);
 
-lab.beforeEach((done) => {
-  Users.sync({
+lab.beforeEach(async () => {
+  await Users.sync({
     // Clear the database after each test
     force: true,
-  }).then(() => done());
+  });
 });
 
 /**
@@ -27,30 +27,27 @@ lab.beforeEach((done) => {
  * @param {User} user The pre-built user model
  * @param {done} done The callback for when test is completed
  */
-function expectUserSaveErrorNotNull(user, done) {
+async function expectUserSaveErrorNotNull(user) {
   let error = null;
-  user
-    .save()
-    .catch((err) => {
-      error = err;
-    }).finally(() => {
-      Code.expect(error).to.not.be.null();
-      done();
-    });
+  try {
+    await user.save();
+  } catch (err) {
+    error = err;
+  }
+  Code.expect(error).to.not.be.null();
 }
 
 lab.experiment('Users model', () => {
-  lab.test('setSalt sets the salt to a random string', (done) => {
+  lab.test('setSalt sets the salt to a random string', () => {
     const user = Users.build({
       name: 'Kyle Jensen',
       email: 'foo@foo.com',
     });
     user.setSalt();
     Code.expect(user.salt).to.be.a.string();
-    done();
   });
 
-  lab.test('setPassword sets the passwordHash', (done) => {
+  lab.test('setPassword sets the passwordHash', () => {
     const user = Users.build({
       name: 'Kyle Jensen',
       email: 'foo@foo.com',
@@ -59,10 +56,9 @@ lab.experiment('Users model', () => {
     user.setSalt();
     user.setPassword('foo');
     Code.expect(user.passwordHash).to.be.a.string();
-    done();
   });
 
-  lab.test('setPassword does not set the passwordHash given empty password', (done) => {
+  lab.test('setPassword does not set the passwordHash given empty password', () => {
     const user = Users.build({
       name: 'Kyle Jensen',
       email: 'foo@foo.com',
@@ -72,58 +68,59 @@ lab.experiment('Users model', () => {
     const result = user.setPassword('');
     Code.expect(user.passwordHash).to.be.undefined();
     Code.expect(result).to.be.null();
-    done();
   });
 
-  lab.test('throws an error if email is null', (done) => {
+  lab.test('throws an error if email is null', async () => {
     const user = Users.ezBuild({
       name: 'Kyle Jensen',
       password: 'foo',
     });
-    expectUserSaveErrorNotNull(user, done);
+    await expectUserSaveErrorNotNull(user);
   });
 
-  lab.test('throws an error if name is null', (done) => {
+  lab.test('throws an error if name is null', async () => {
     const user = Users.ezBuild({
       email: 'foo@foo.com',
       password: 'foo',
     });
-    expectUserSaveErrorNotNull(user, done);
+    await expectUserSaveErrorNotNull(user);
   });
 
-  lab.test('throws an error if passwordHash is null', (done) => {
+  lab.test('throws an error if passwordHash is null', async () => {
     const user = Users.build({
       name: 'Kyle Jensen',
       email: 'foo@foo.com',
       salt: 'sdfsd',
     });
-    expectUserSaveErrorNotNull(user, done);
+    await expectUserSaveErrorNotNull(user);
   });
 
-  lab.test('throws an error if salt is null', (done) => {
+  lab.test('throws an error if salt is null', async () => {
     const user = Users.build({
       name: 'Kyle Jensen',
       email: 'foo@foo.com',
       passwordHash: 'wetwetsdf',
     });
-    expectUserSaveErrorNotNull(user, done);
+    await expectUserSaveErrorNotNull(user);
   });
 
-  lab.test('Email is transformed to lowercase automatically', (done) => {
+  lab.test('Email is transformed to lowercase automatically', async () => {
     const user = Users.ezBuild({
       name: 'Kyle Jensen',
       email: 'FOO@bar.com',
       password: 'foo',
     });
-    user
-      .save()
-      .finally(() => {
-        Code.expect(user.email).to.equal('foo@bar.com');
-        done();
-      });
+    let error = null;
+    try {
+      await user.save();
+    } catch (err) {
+      error = err;
+    }
+    Code.expect(error).to.be.null;
+    Code.expect(user.email).to.equal('foo@bar.com');
   });
 
-  lab.test('Two users cannot have the same email address', (done) => {
+  lab.test('Two users cannot have the same email address', async () => {
     const user1 = Users.ezBuild({
       name: 'Kyle Jensen',
       email: 'FOO@bar.com',
@@ -134,23 +131,19 @@ lab.experiment('Users model', () => {
       email: 'FOO@bar.com',
       password: 'bar',
     });
-    user1
-      .save()
-      .then(() => {
-        expectUserSaveErrorNotNull(user2, done);
-      });
+    await user1.save();
+    await expectUserSaveErrorNotNull(user2);
   });
 
-  lab.test('checkPassword is returns true/false appropriately', (done) => {
+  lab.test('checkPassword is returns true/false appropriately', async () => {
     const user = Users.ezBuild({
       name: 'Kyle Jensen',
       email: 'FOO@bar.com',
       password: 'foo',
     });
-    user
+    await user
       .save();
     Code.expect(user.checkPassword('x')).to.be.false();
     Code.expect(user.checkPassword('foo')).to.be.true();
-    done();
   });
 });

@@ -15,8 +15,7 @@ const db = require('../../models/index.js').load('sqlite://', {
 const Users = db.users;
 const Tasks = db.tasks;
 let demoUsers = [];
-const demoUsersOpts = [
-  {
+const demoUsersOpts = [{
     name: 'Lauren Blake',
     email: 'lauren@foo.com',
     password: 'foo',
@@ -33,209 +32,162 @@ const demoUsersOpts = [
   },
 ];
 
-function setupDemoUsers(done) {
+async function setupDemoUsers() {
   const opts = {
     force: true,
   };
   // Set up the database. It is flushed each time.
-  Promise.all([db.sequelize.sync(opts)]).then(() => {
-    // Then create some demo users.
-    const tmpUsers = demoUsersOpts.map(userOpts => Users.ezBuild(userOpts));
-    const savePromises = tmpUsers.map(u => u.save());
-    Promise.all(savePromises).then(() => {
-      demoUsers = tmpUsers;
-      done();
-    });
-  });
+  await Promise.all([db.sequelize.sync(opts)]);
+  // Then create some demo users.
+  const tmpUsers = demoUsersOpts.map(userOpts => Users.ezBuild(userOpts));
+  const savePromises = tmpUsers.map(u => u.save());
+  await Promise.all(savePromises);
+  demoUsers = tmpUsers;
 }
 
-lab.beforeEach((done) => {
-  setupDemoUsers(done);
+lab.beforeEach(async () => {
+  await setupDemoUsers();
 });
 
 /**
  * Pass test if task.save throws error, fail otherwise.
  * @param {Task} user The pre-built task model
- * @param {done} done The callback for when test is completed
  */
-function expectTaskSaveErrorNotNull(task, done) {
+async function expectTaskSaveErrorNotNull(task) {
   let error = null;
-  task
-    .save()
-    .catch((err) => {
-      error = err;
-    }).error((err) => {
-      error = err;
-    }).finally(() => {
-      Code.expect(error).to.not.be.null();
-      done();
-    });
+  try {
+    await task.save();
+  } catch (err) {
+    error = err;
+  }
+  Code.expect(error).to.not.be.null();
 }
 
 /**
  * Pass test if task.save does not throw error, fail otherwise.
  * @param {Task} user The pre-built task model
- * @param {done} done The callback for when test is completed
  */
-function expectTaskSaveErrorNull(task, done) {
+async function expectTaskSaveErrorNull(task) {
   let error = null;
-  task
-    .save()
-    .catch((err) => {
-      error = err;
-    }).error((err) => {
-      error = err;
-    }).finally(() => {
-      Code.expect(error).to.be.null();
-      done();
-    });
+  try {
+    await task.save();
+  } catch (err) {
+    error = err;
+  }
+  Code.expect(error).to.be.null();
 }
 
 lab.experiment('Tasks model', () => {
-  lab.test('has a setOwner method', (done) => {
+  lab.test('has a setOwner method', () => {
     const task = Tasks.build({
       name: 'Get milk',
       description: 'The bulk stuff at Costco',
     });
     Code.expect(task.setOwner).to.be.a.function();
-    done();
   });
 
-  lab.test('throws an error if no owner is specified', (done) => {
+  lab.test('throws an error if no owner is specified', async () => {
     const task = Tasks.build({
       name: 'Get milk',
       description: 'The bulk stuff at Costco',
     });
-    expectTaskSaveErrorNotNull(task, done);
+    await expectTaskSaveErrorNotNull(task);
   });
 
-  lab.test('throws an error if name is empty', (done) => {
+  lab.test('throws an error if name is empty', async () => {
     const task = Tasks.build({
       name: '',
       description: 'The bulk stuff at Costco',
       ownerId: demoUsers[0].id,
     });
-    expectTaskSaveErrorNotNull(task, done);
+    await expectTaskSaveErrorNotNull(task);
   });
 
-  lab.test('throws an error if name is over 500 letters', (done) => {
+  lab.test('throws an error if name is over 500 letters', async () => {
     const task = Tasks.build({
       name: 'x'.repeat(501),
       description: 'The bulk stuff at Costco',
       ownerId: demoUsers[0].id,
     });
-    expectTaskSaveErrorNotNull(task, done);
+    await expectTaskSaveErrorNotNull(task);
   });
 
-  lab.test('does not throw an error if description is empty', (done) => {
+  lab.test('does not throw an error if description is empty', async () => {
     const task = Tasks.build({
       name: 'Buy milk',
       description: '',
       ownerId: demoUsers[0].id,
     });
-    expectTaskSaveErrorNull(task, done);
+    await expectTaskSaveErrorNull(task);
   });
 
-  lab.test('throws an error if name is over 5000 letters', (done) => {
+  lab.test('throws an error if name is over 5000 letters', async () => {
     const task = Tasks.build({
       name: 'Buy milk',
       description: 'x'.repeat(5001),
       ownerId: demoUsers[0].id,
     });
-    expectTaskSaveErrorNotNull(task, done);
+    await expectTaskSaveErrorNotNull(task);
   });
 
-  lab.test('can be saved when given valid data', (done) => {
+  lab.test('can be saved when given valid data', async () => {
     const task = Tasks.build({
       name: 'Buy milk',
       description: 'The bulk stuff at Costco',
       ownerId: demoUsers[0].id,
     });
     let error = null;
-    task
-      .save()
-      .catch((err) => {
-        error = err;
-      }).finally(() => {
-        Code.expect(error).to.be.null();
-        Code.expect(task.ownerId).to.equal(demoUsers[0].id);
-        Code.expect(task.getOwner).to.be.a.function();
-        task
-          .getOwner()
-          .then((owner) => {
-            Code.expect(owner.id).to.equal(demoUsers[0].id);
-          })
-          .finally(() => {
-            done();
-          });
-      });
+    try {
+      await task.save();
+    } catch (err) {
+      error = err;
+    }
+    Code.expect(error).to.be.null();
+    Code.expect(task.ownerId).to.equal(demoUsers[0].id);
+    Code.expect(task.getOwner).to.be.a.function();
+    const owner = await task.getOwner();
+    Code.expect(owner.id).to.equal(demoUsers[0].id);
   });
 
-  lab.test('is not complete by default', (done) => {
+  lab.test('is not complete by default', async () => {
     const task = Tasks.build({
       name: 'Buy milk',
       description: 'The bulk stuff at Costco',
       ownerId: demoUsers[0].id,
     });
-    task
-      .save()
-      .finally(() => {
-        Code.expect(task.isComplete).to.be.a.false();
-        done();
-      });
+    await task.save();
+    Code.expect(task.isComplete).to.be.a.false();
   });
 
-  lab.test('has an addCollaborator method', (done) => {
+  lab.test('has an addCollaborator method', async () => {
     const task = Tasks.build({
       name: 'Buy milk',
       description: 'The bulk stuff at Costco',
       ownerId: demoUsers[0].id,
     });
-    task
-      .save()
-      .finally(() => {
-        Code.expect(task.addCollaborator).to.be.a.function();
-        done();
-      });
+    await task.save();
+    Code.expect(task.addCollaborator).to.be.a.function();
   });
 
-  lab.test('has an getCollaborators method', (done) => {
+  lab.test('has an getCollaborators method', async () => {
     const task = Tasks.build({
       name: 'Buy milk',
       description: 'The bulk stuff at Costco',
       ownerId: demoUsers[0].id,
     });
-    task
-      .save()
-      .finally(() => {
-        Code.expect(task.getCollaborators).to.be.a.function();
-        done();
-      });
+    await task.save();
+    Code.expect(task.getCollaborators).to.be.a.function();
   });
 
-  lab.test('collaborators can be added', (done) => {
+  lab.test('collaborators can be added', async () => {
     const task = Tasks.build({
       name: 'Buy milk',
       description: 'The bulk stuff at Costco',
       ownerId: demoUsers[0].id,
     });
-    let collaborators = [];
-    task
-      .save()
-      .finally(() => {
-        task
-          .addCollaborator(demoUsers[1])
-          .finally(() => {
-            task
-              .getCollaborators()
-              .then((results) => {
-                collaborators = results;
-              })
-              .finally(() => {
-                Code.expect(collaborators.length).to.equal(1);
-                done();
-              });
-          });
-      });
+    await task.save();
+    await task.addCollaborator(demoUsers[1]);
+    const collaborators = await task.getCollaborators();
+    Code.expect(collaborators.length).to.equal(1);
   });
 });

@@ -15,8 +15,7 @@ const db = require('../../models/index.js').load('sqlite://', {
 const Users = db.users;
 const Tasks = db.tasks;
 let demoUsers = [];
-const demoUsersOpts = [
-  {
+const demoUsersOpts = [{
     name: 'Lauren Blake',
     email: 'lauren@foo.com',
     password: 'foo',
@@ -38,8 +37,7 @@ const demoUsersOpts = [
   },
 ];
 
-const demoTaskOpts = [
-  {
+const demoTaskOpts = [{
     name: 'Get milk',
     description: 'From Costco',
     ownerId: 1,
@@ -56,78 +54,49 @@ const demoTaskOpts = [
   },
 ];
 
-function setupDemoUsers(done) {
+async function setupDemoUsers() {
   const opts = {
     force: true,
   };
   // Set up the database. It is flushed each time.
-  Promise.all([db.sequelize.sync(opts)]).then(() => {
-    // Then create some demo users.
-    const tmpUsers = demoUsersOpts.map(userOpts => Users.ezBuild(userOpts));
-    const savePromises = tmpUsers.map(u => u.save());
-    Promise.all(savePromises).then(() => {
-      demoUsers = tmpUsers;
-      done();
-    });
-  });
+  await db.sequelize.sync(opts);
+  const tmpUsers = demoUsersOpts.map(userOpts => Users.ezBuild(userOpts));
+  const savePromises = tmpUsers.map(u => u.save());
+  await Promise.all(savePromises);
+  demoUsers = tmpUsers;
 }
-
-lab.beforeEach((done) => {
-  setupDemoUsers(done);
-});
 
 lab.experiment('For collections of users and tasks', () => {
   let demoTasks = [];
 
-  function setupDemoTasks(done) {
-    const taskPromises = demoTaskOpts.map(t => Tasks.build(t).save());
-    Promise.all(taskPromises).then((results) => {
-      demoTasks = results;
-      const promises = [];
-      promises.push(demoTasks[0].addCollaborator(demoUsers[2]));
-      Promise
-        .all(promises)
-        .then(() => {
-          done();
-        });
-    });
+  async function setupDemoTasks() {
+    const demoTaskPromises = await demoTaskOpts.map(t => Tasks.build(t).save());
+    demoTasks = await Promise.all(demoTaskPromises);
+    await demoTasks[0].addCollaborator(demoUsers[2]);
   }
 
-  lab.beforeEach({
-    timeout: 10000,
-  }, (done) => {
-    setupDemoUsers(() => {
-      setupDemoTasks(done);
-    });
+  lab.beforeEach(async () => {
+    await setupDemoUsers();
+    await setupDemoTasks();
   });
 
-  function testUserTaskCount(promise, expectedCount, done) {
+  async function testUserTaskCount(taskPromise, expectedCount) {
     let error = null;
-    promise
-      .catch((err) => {
-        error = err;
-      })
-      .then((tasks) => {
-        Code.expect(error).to.be.null();
-        Code.expect(tasks.length).to.equal(expectedCount);
-      }).finally(() => {
-        done();
-      });
+    let tasks;
+    try {
+      tasks = await taskPromise;
+    } catch (err) {
+      error = err;
+    }
+    Code.expect(error).to.be.null();
+    Code.expect(tasks.length).to.equal(expectedCount);
   }
 
-  lab.test('a tasks owner can be queried', (done) => {
+  lab.test('a tasks owner can be queried', async () => {
     let error = null;
-    demoTasks[0]
-      .getOwner()
-      .catch((err) => {
-        error = err;
-      })
-      .then((owner) => {
-        Code.expect(error).to.be.null();
-        Code.expect(owner.id).to.equal(1);
-      }).finally(() => {
-        done();
-      });
+    const owner = await demoTasks[0].getOwner();
+    Code.expect(error).to.be.null();
+    Code.expect(owner.id).to.equal(1);
   });
 
   lab.test('a users owned tasks can be queried', (done) => {
@@ -135,36 +104,28 @@ lab.experiment('For collections of users and tasks', () => {
     testUserTaskCount(u.getTasks(), 2, done);
   });
 
-  lab.test('a users shared tasks can be queried', (done) => {
-    testUserTaskCount(demoUsers[0].getSharedTasks(), 0, () => {
-      testUserTaskCount(demoUsers[2].getSharedTasks(), 1, done);
-    });
+  lab.test('a users shared tasks can be queried', async () => {
+    await testUserTaskCount(demoUsers[0].getSharedTasks(), 0);
+    await testUserTaskCount(demoUsers[2].getSharedTasks(), 1);
   });
 
-  lab.test('a users findOneWithTasks eagerly loads tasks', (done) => {
-    Users
+  lab.test('a users findOneWithTasks eagerly loads tasks', async () => {
+    const user = await Users
       .findOneWithTasks({
         id: 1,
-      })
-      .then((user) => {
-        Code.expect(user.tasks.length).to.equal(2);
-        done();
       });
+    Code.expect(user.tasks.length).to.equal(2);
   });
 
-  lab.test('a tasks addCollaborators method adds collaborators', (done) => {
+  lab.test('a tasks addCollaborators method adds collaborators', async () => {
     let error = null;
-    demoTasks[2]
-      .addCollaborators([demoUsers[2], demoUsers[3]])
-      .catch((err) => {
-        error = err;
-      })
-      .finally(() => {
-        Code.expect(true).to.be.true();
-        testUserTaskCount(demoUsers[3].getSharedTasks(), 1, () => {
-          Code.expect(error).to.be.null();
-          done();
-        });
-      });
+    try {
+      await demoTasks[2]
+        .addCollaborators([demoUsers[2], demoUsers[3]]);
+    } catch (err) {
+      error = err;
+    }
+    Code.expect(error).to.be.null;
+    await testUserTaskCount(demoUsers[3].getSharedTasks(), 1);
   });
 });
